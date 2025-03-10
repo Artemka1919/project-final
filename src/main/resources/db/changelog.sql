@@ -103,14 +103,22 @@ create table PROFILE
     constraint FK_PROFILE_USERS foreign key (ID) references USERS (ID) on delete cascade
 );
 
-create table CONTACT
-(
-    ID    bigint       not null,
-    CODE  varchar(32)  not null,
-    VALUE varchar(256) not null,
-    primary key (ID, CODE),
-    constraint FK_CONTACT_PROFILE foreign key (ID) references PROFILE (ID) on delete cascade
+-- create table CONTACT
+-- (
+--     ID    bigint       not null,
+--     CODE  varchar(32)  not null,
+--     "VALUE" varchar(256) not null,
+--     primary key (ID, CODE),
+--     constraint FK_CONTACT_PROFILE foreign key (ID) references PROFILE (ID) on delete cascade
+-- );
+CREATE TABLE CONTACT (
+                         ID BIGINT NOT NULL,
+                         CODE VARCHAR(32) NOT NULL,
+                         "VALUE" VARCHAR(256) NOT NULL,
+                         PRIMARY KEY (ID, CODE),
+                         CONSTRAINT FK_CONTACT_PROFILE FOREIGN KEY (ID) REFERENCES PROFILE(ID) ON DELETE CASCADE
 );
+
 
 create table TASK
 (
@@ -248,21 +256,37 @@ values ('assigned', 'Assigned', 6, '1'),
 
 --changeset gkislin:change_backtracking_tables
 
-alter table SPRINT rename COLUMN TITLE to CODE;
-alter table SPRINT
-    alter column CODE type varchar (32);
-alter table SPRINT
-    alter column CODE set not null;
-create unique index UK_SPRINT_PROJECT_CODE on SPRINT (PROJECT_ID, CODE);
+-- alter table SPRINT rename column TITLE to CODE;
+-- alter table SPRINT
+--     alter column CODE set data type varchar(32);
+-- alter table SPRINT
+--     alter column CODE set not null;
+-- create unique index UK_SPRINT_PROJECT_CODE on SPRINT (PROJECT_ID, CODE);
+--
+-- ALTER TABLE TASK
+--     DROP COLUMN DESCRIPTION;
+-- ALTER TABLE TASK
+--     DROP COLUMN PRIORITY_CODE;
+-- ALTER TABLE TASK
+--     DROP COLUMN ESTIMATE;
+-- ALTER TABLE TASK
+--     DROP COLUMN UPDATED;
+-- Переименование столбца
+ALTER TABLE SPRINT RENAME COLUMN TITLE TO CODE;
 
-ALTER TABLE TASK
-    DROP COLUMN DESCRIPTION;
-ALTER TABLE TASK
-    DROP COLUMN PRIORITY_CODE;
-ALTER TABLE TASK
-    DROP COLUMN ESTIMATE;
-ALTER TABLE TASK
-    DROP COLUMN UPDATED;
+-- Изменение типа данных и добавление NOT NULL (раздельно)
+ALTER TABLE SPRINT ALTER COLUMN CODE SET DATA TYPE VARCHAR(32);
+ALTER TABLE SPRINT ALTER COLUMN CODE SET NOT NULL;
+
+-- Создание уникального индекса
+CREATE UNIQUE INDEX UK_SPRINT_PROJECT_CODE ON SPRINT (PROJECT_ID, CODE);
+
+-- Удаление колонок (H2 требует отдельного `ALTER TABLE` для каждой)
+ALTER TABLE TASK DROP COLUMN IF EXISTS DESCRIPTION;
+ALTER TABLE TASK DROP COLUMN IF EXISTS PRIORITY_CODE;
+ALTER TABLE TASK DROP COLUMN IF EXISTS ESTIMATE;
+ALTER TABLE TASK DROP COLUMN IF EXISTS UPDATED;
+
 
 --changeset ishlyakhtenkov:change_task_status_reference
 
@@ -281,17 +305,33 @@ values ('todo', 'ToDo', 3, 'in_progress,canceled'),
 
 --changeset gkislin:users_add_on_delete_cascade
 
-alter table ACTIVITY
-    drop constraint FK_ACTIVITY_USERS,
-    add constraint FK_ACTIVITY_USERS foreign key (AUTHOR_ID) references USERS (ID) on delete cascade;
+-- alter table ACTIVITY
+--     drop constraint FK_ACTIVITY_USERS,
+--     add constraint FK_ACTIVITY_USERS foreign key (AUTHOR_ID) references USERS (ID) on delete cascade;
+--
+-- alter table USER_BELONG
+--     drop constraint FK_USER_BELONG,
+--     add constraint FK_USER_BELONG foreign key (USER_ID) references USERS (ID) on delete cascade;
+--
+-- alter table ATTACHMENT
+--     drop constraint FK_ATTACHMENT,
+--     add constraint FK_ATTACHMENT foreign key (USER_ID) references USERS (ID) on delete cascade;
 
-alter table USER_BELONG
-    drop constraint FK_USER_BELONG,
-    add constraint FK_USER_BELONG foreign key (USER_ID) references USERS (ID) on delete cascade;
+-- Удаление старых ограничений
+ALTER TABLE ACTIVITY DROP CONSTRAINT IF EXISTS FK_ACTIVITY_USERS;
+ALTER TABLE USER_BELONG DROP CONSTRAINT IF EXISTS FK_USER_BELONG;
+ALTER TABLE ATTACHMENT DROP CONSTRAINT IF EXISTS FK_ATTACHMENT;
 
-alter table ATTACHMENT
-    drop constraint FK_ATTACHMENT,
-    add constraint FK_ATTACHMENT foreign key (USER_ID) references USERS (ID) on delete cascade;
+-- Добавление новых внешних ключей с ON DELETE CASCADE
+ALTER TABLE ACTIVITY
+    ADD CONSTRAINT FK_ACTIVITY_USERS FOREIGN KEY (AUTHOR_ID) REFERENCES USERS (ID) ON DELETE CASCADE;
+
+ALTER TABLE USER_BELONG
+    ADD CONSTRAINT FK_USER_BELONG FOREIGN KEY (USER_ID) REFERENCES USERS (ID) ON DELETE CASCADE;
+
+ALTER TABLE ATTACHMENT
+    ADD CONSTRAINT FK_ATTACHMENT FOREIGN KEY (USER_ID) REFERENCES USERS (ID) ON DELETE CASCADE;
+
 
 --changeset valeriyemelyanov:change_user_type_reference
 
@@ -327,5 +367,13 @@ values ('todo', 'ToDo', 3, 'in_progress,canceled|'),
 
 --changeset ishlyakhtenkov:change_UK_USER_BELONG
 
-drop index UK_USER_BELONG;
-create unique index UK_USER_BELONG on USER_BELONG (OBJECT_ID, OBJECT_TYPE, USER_ID, USER_TYPE_CODE) where ENDPOINT is null;
+-- drop index UK_USER_BELONG;
+-- create unique index UK_USER_BELONG on USER_BELONG (OBJECT_ID, OBJECT_TYPE, USER_ID, USER_TYPE_CODE) where ENDPOINT is null;
+-- Удаление индекса, если он существует
+DROP INDEX IF EXISTS UK_USER_BELONG;
+
+-- Создание уникального индекса (без условия WHERE)
+CREATE UNIQUE INDEX UK_USER_BELONG
+    ON USER_BELONG (OBJECT_ID, OBJECT_TYPE, USER_ID, USER_TYPE_CODE);
+
+
